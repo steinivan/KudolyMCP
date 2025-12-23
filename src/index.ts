@@ -5,6 +5,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import { KudolyApi } from './services/kudolyApi.js';
 import { submitDailyReport, submitDailyReportSchema } from './tools/submitDailyReport.js';
+import { generateDevlog, generateDevlogSchema, GENERATE_DEVLOG_DESCRIPTION } from './tools/generateDevlog.js';
 
 // Validate environment variables
 const KUDOLY_BASE_URL = process.env.KUDOLY_BASE_URL;
@@ -94,6 +95,62 @@ Por favor guíame paso a paso:
 3. Genera un resumen ejecutivo de mis actividades basado en nuestra conversación
 4. Confirma el estado de la tarea
 5. Solo entonces usa el tool submit_daily_report
+
+Empecemos.`
+          }
+        }
+      ]
+    };
+  }
+);
+
+// Register the generate_devlog tool
+server.tool(
+  'generate_devlog',
+  GENERATE_DEVLOG_DESCRIPTION,
+  generateDevlogSchema.shape,
+  async (params) => {
+    const input = generateDevlogSchema.parse(params);
+    const result = await generateDevlog(input, api);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2)
+        }
+      ]
+    };
+  }
+);
+
+// Register a prompt for guided devlog generation
+server.prompt(
+  'generate-devlog',
+  'Inicia el flujo guiado para generar un DEVLOG de conocimiento',
+  {
+    task_name: z.string().optional().describe('Nombre de la tarea para el DEVLOG')
+  },
+  async (args) => {
+    const taskInfo = args.task_name ? `\n\nTarea especificada: ${args.task_name}` : '';
+
+    return {
+      messages: [
+        {
+          role: 'user',
+          content: {
+            type: 'text',
+            text: `Quiero generar un DEVLOG para documentar el trabajo que hicimos.${taskInfo}
+
+Por favor:
+1. Confirma el proyecto (del package.json o pregúntame)
+2. Confirma la tarea donde guardar el DEVLOG
+3. Analiza TODO nuestro historial de chat: código escrito, archivos creados, decisiones tomadas, problemas resueltos
+4. Genera un DEVLOG completo con la estructura estándar (contexto, qué se hizo, decisiones técnicas, implementación, problemas, configuración, limitaciones)
+5. Muéstrame el DEVLOG y déjame revisar/modificar antes de guardarlo
+6. Solo cuando lo apruebe, usa el tool generate_devlog
+
+El DEVLOG debe ser autocontenido - alguien que no vio este chat debe entender completamente qué se hizo y por qué.
 
 Empecemos.`
           }

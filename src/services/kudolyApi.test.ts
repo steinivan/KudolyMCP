@@ -111,14 +111,15 @@ describe('KudolyApi', () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
-        statusText: 'Internal Server Error'
+        statusText: 'Internal Server Error',
+        json: () => Promise.resolve({ error: 'Server error' })
       });
 
       const api = new KudolyApi(baseUrl, token);
 
       await expect(
         api.checkTask({ project_name: 'test', task_name: 'test' })
-      ).rejects.toThrow('HTTP error: 500 Internal Server Error');
+      ).rejects.toThrow('Server error');
     });
   });
 

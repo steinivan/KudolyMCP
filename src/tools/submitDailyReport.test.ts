@@ -139,11 +139,10 @@ describe('submitDailyReport', () => {
     });
 
     it('handles PROJECT_NOT_FOUND error', async () => {
-      vi.mocked(mockApi.checkTask).mockResolvedValue({
-        task_found: false,
-        code: 'PROJECT_NOT_FOUND',
-        available_projects: ['project-a', 'project-b']
-      });
+      const { KudolyApiError } = await import('../services/kudolyApi.js');
+      vi.mocked(mockApi.checkTask).mockRejectedValue(
+        new KudolyApiError('Project not found', 400, 'PROJECT_NOT_FOUND', ['project-a', 'project-b'])
+      );
 
       const result = await submitDailyReport(
         { task_name: 'task', activities_string: 'work' },
@@ -156,10 +155,10 @@ describe('submitDailyReport', () => {
     });
 
     it('handles CLICKUP_NOT_CONFIGURED error', async () => {
-      vi.mocked(mockApi.checkTask).mockResolvedValue({
-        task_found: false,
-        code: 'CLICKUP_NOT_CONFIGURED'
-      });
+      const { KudolyApiError } = await import('../services/kudolyApi.js');
+      vi.mocked(mockApi.checkTask).mockRejectedValue(
+        new KudolyApiError('ClickUp not configured', 400, 'CLICKUP_NOT_CONFIGURED')
+      );
 
       const result = await submitDailyReport(
         { task_name: 'task', activities_string: 'work' },

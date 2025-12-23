@@ -51,3 +51,20 @@ export interface SubmitDailyReportParams {
   create_task?: boolean;
   clickup_status?: string;
 }
+
+// Devlog Types
+export interface SaveDevlogRequest {
+  project_name: string;
+  task_name: string;
+  devlog_content: string;
+  filename: string;
+}
+
+export interface SaveDevlogResponse {
+  success: boolean;
+  message: string;
+  task_id?: string;
+  task_name?: string;
+  file_url?: string;
+  filename?: string;
+}

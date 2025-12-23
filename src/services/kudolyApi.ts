@@ -2,7 +2,9 @@ import type {
   CheckTaskRequest,
   CheckTaskResponse,
   SaveReportRequest,
-  SaveReportResponse
+  SaveReportResponse,
+  SaveDevlogRequest,
+  SaveDevlogResponse
 } from '../types/index.js';
 
 export class KudolyApiError extends Error {
@@ -87,5 +89,9 @@ export class KudolyApi {
 
   async saveReport(request: SaveReportRequest): Promise<SaveReportResponse> {
     return this.request<SaveReportResponse>('/daily-save-report', request);
+  }
+
+  async saveDevlog(request: SaveDevlogRequest): Promise<SaveDevlogResponse> {
+    return this.request<SaveDevlogResponse>('/daily-save-devlog', request);
   }
 }

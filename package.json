@@ -1,0 +1,36 @@
+{
+  "name": "kudoly-mcp",
+  "version": "1.0.0",
+  "description": "MCP Server for Kudoly Daily Reports",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "kudoly-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/steinivan/KudolyMCP.git"
+  },
+  "author": "steinivan",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/steinivan/KudolyMCP/issues"
+  },
+  "homepage": "https://github.com/steinivan/KudolyMCP#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

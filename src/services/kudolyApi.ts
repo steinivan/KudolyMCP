@@ -1,10 +1,18 @@
 import type {
+  CancelTaskTimerRequest,
+  CancelTaskTimerResponse,
   CheckTaskRequest,
   CheckTaskResponse,
   SaveReportRequest,
   SaveReportResponse,
   SaveDevlogRequest,
-  SaveDevlogResponse
+  SaveDevlogResponse,
+  StartTaskTimerRequest,
+  StartTaskTimerResponse,
+  StopTaskTimerRequest,
+  StopTaskTimerResponse,
+  SaveTimeEntryRequest,
+  SaveTimeEntryResponse
 } from '../types/index.js';
 
 export class KudolyApiError extends Error {
@@ -80,6 +88,10 @@ export class KudolyApi {
       );
     }
 
+    if (data && data.success === true && 'data' in data) {
+      return data.data as T;
+    }
+
     return data as T;
   }
 
@@ -93,5 +105,21 @@ export class KudolyApi {
 
   async saveDevlog(request: SaveDevlogRequest): Promise<SaveDevlogResponse> {
     return this.request<SaveDevlogResponse>('/daily-save-devlog', request);
+  }
+
+  async saveTimeEntry(request: SaveTimeEntryRequest): Promise<SaveTimeEntryResponse> {
+    return this.request<SaveTimeEntryResponse>('/api/v1/time-entries', request);
+  }
+
+  async startTaskTimer(request: StartTaskTimerRequest): Promise<StartTaskTimerResponse> {
+    return this.request<StartTaskTimerResponse>('/api/v1/time-entries/start', request);
+  }
+
+  async stopTaskTimer(request: StopTaskTimerRequest): Promise<StopTaskTimerResponse> {
+    return this.request<StopTaskTimerResponse>('/api/v1/time-entries/stop', request);
+  }
+
+  async cancelTaskTimer(request: CancelTaskTimerRequest): Promise<CancelTaskTimerResponse> {
+    return this.request<CancelTaskTimerResponse>('/api/v1/time-entries/cancel', request);
   }
 }

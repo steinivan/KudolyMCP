@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { KudolyApi, KudolyApiError } from '../services/kudolyApi.js';
 import { getProjectNameFromPackageJson } from '../utils/packageJson.js';
 

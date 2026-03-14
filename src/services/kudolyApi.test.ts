@@ -186,4 +186,122 @@ describe('KudolyApi', () => {
       expect(result.task_created).toBe(true);
     });
   });
+
+  describe('time tracker endpoints', () => {
+    it('unwraps apiSuccess responses for saveTimeEntry', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 201,
+        json: () => Promise.resolve({
+          success: true,
+          data: {
+            task_id: 'task-123',
+            imported: true,
+            message: 'Tiempo registrado correctamente'
+          }
+        })
+      });
+
+      const api = new KudolyApi(baseUrl, token);
+      const result = await api.saveTimeEntry({
+        user_email: 'dev@test.com',
+        task: 'Tracker',
+        duration_minutes: 15
+      });
+
+      expect(result).toEqual({
+        task_id: 'task-123',
+        imported: true,
+        message: 'Tiempo registrado correctamente'
+      });
+    });
+
+    it('starts a task timer', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 201,
+        json: () => Promise.resolve({
+          success: true,
+          data: {
+            task_id: 'task-123',
+            started: true,
+            project_id: 'project-1',
+            project_name: 'Kudoly',
+            message: 'Timer iniciado correctamente'
+          }
+        })
+      });
+
+      const api = new KudolyApi(baseUrl, token);
+      const result = await api.startTaskTimer({
+        user_email: 'dev@test.com',
+        task: 'Implementar tracker',
+        project: 'Kudoly'
+      });
+
+      expect(result.started).toBe(true);
+      expect(result.task_id).toBe('task-123');
+      expect(fetch).toHaveBeenCalledWith(
+        `${baseUrl}/api/v1/time-entries/start`,
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    it('stops a task timer', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({
+          success: true,
+          data: {
+            task_id: 'task-123',
+            stopped: true,
+            elapsed_seconds: 1800,
+            message: 'Timer detenido correctamente'
+          }
+        })
+      });
+
+      const api = new KudolyApi(baseUrl, token);
+      const result = await api.stopTaskTimer({
+        user_email: 'dev@test.com',
+        task_id: 'task-123',
+        status: 'done'
+      });
+
+      expect(result.elapsed_seconds).toBe(1800);
+      expect(result.stopped).toBe(true);
+      expect(fetch).toHaveBeenCalledWith(
+        `${baseUrl}/api/v1/time-entries/stop`,
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    it('cancels a task timer', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({
+          success: true,
+          data: {
+            task_id: 'task-123',
+            cancelled: true,
+            message: 'Timer cancelado sin registrar tiempo'
+          }
+        })
+      });
+
+      const api = new KudolyApi(baseUrl, token);
+      const result = await api.cancelTaskTimer({
+        user_email: 'dev@test.com',
+        task_id: 'task-123'
+      });
+
+      expect(result.cancelled).toBe(true);
+      expect(fetch).toHaveBeenCalledWith(
+        `${baseUrl}/api/v1/time-entries/cancel`,
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+  });
 });

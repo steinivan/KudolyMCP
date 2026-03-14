@@ -1,26 +1,28 @@
 # Kudoly MCP
 
-MCP Server para registrar reportes diarios de desarrolladores en Kudoly.
+MCP Server para registrar dailies, devlogs y tiempo en Kudoly.
 
-## Instalación
+## Instalacion
 
 ```bash
 npm install
 npm run build
 ```
 
-## Configuración
+## Configuracion
 
-Crear archivo `.env` con:
+Crea un archivo `.env`:
 
 ```env
-KUDOLY_BASE_URL=https://tu-n8n.com/webhook
-KUDOLY_API_TOKEN=tu-token-aqui
+KUDOLY_BASE_URL=https://tu-app-kudoly.com
+KUDOLY_API_TOKEN=tu-token-de-kudoly
 ```
+
+`KUDOLY_BASE_URL` debe apuntar a la app Next de Kudoly. Los tools MCP usan el backend web de Kudoly, no los webhooks de n8n.
 
 ## Uso con Claude Desktop
 
-Agregar a `claude_desktop_config.json`:
+Agrega esto a `claude_desktop_config.json`:
 
 ```json
 {
@@ -29,8 +31,8 @@ Agregar a `claude_desktop_config.json`:
       "command": "node",
       "args": ["C:/ruta/al/proyecto/dist/index.js"],
       "env": {
-        "KUDOLY_BASE_URL": "https://tu-n8n.com/webhook",
-        "KUDOLY_API_TOKEN": "tu-token"
+        "KUDOLY_BASE_URL": "https://tu-app-kudoly.com",
+        "KUDOLY_API_TOKEN": "tu-token-de-kudoly"
       }
     }
   }
@@ -39,95 +41,102 @@ Agregar a `claude_desktop_config.json`:
 
 ## Tool: submit_daily_report
 
-Registra una actividad diaria con verificación de tarea en ClickUp.
+Registra una actividad diaria con verificacion de tarea en ClickUp.
 
-### Parámetros
+### Parametros
 
-| Parámetro | Tipo | Requerido | Descripción |
+| Parametro | Tipo | Requerido | Descripcion |
 |-----------|------|-----------|-------------|
-| project_name | string | No | Nombre del proyecto (se intenta obtener de package.json si no se proporciona) |
-| task_name | string | Sí | Nombre de la tarea en ClickUp |
-| activities_string | string | Sí | Descripción de las actividades realizadas |
-| status | enum | No | Estado: complete, progress, blocked, upcoming, qa (default: progress) |
-| create_task | boolean | No | Si es true, crea la tarea en ClickUp si no existe (default: false) |
-| clickup_status | string | No | Status de ClickUp para la nueva tarea (requerido si create_task=true) |
+| project_name | string | No | Nombre del proyecto. Si falta, se intenta inferir desde `package.json`. |
+| task_name | string | Si | Nombre de la tarea en ClickUp. |
+| activities_string | string | Si | Descripcion de las actividades realizadas. |
+| status | enum | No | `complete`, `progress`, `blocked`, `upcoming`, `qa`. |
+| create_task | boolean | No | Si es `true`, crea la tarea en ClickUp si no existe. |
+| clickup_status | string | No | Status de ClickUp para la nueva tarea. |
 
-### Flujo
+## Tool: generate_devlog
 
-1. **Verificar tarea**: Llama al backend para verificar si la tarea existe en ClickUp
-2. **Si no existe**: Retorna los statuses disponibles para que el usuario confirme la creación
-3. **Guardar reporte**: Guarda el reporte (creando la tarea si fue confirmado)
+Genera y guarda un archivo `DEVLOG.md` como adjunto en una tarea de ClickUp.
 
-### Respuestas
+## Tool: log_time_entry
 
-**Tarea encontrada y reporte guardado:**
-```json
-{
-  "type": "save_report",
-  "success": true,
-  "daily_id": "uuid",
-  "task_name": "Mi tarea",
-  "task_created": false,
-  "project_name": "mi-proyecto",
-  "message": "Reporte guardado para la tarea \"Mi tarea\"."
-}
-```
+Registra una entrada de tiempo en el dashboard `Time` de Kudoly.
 
-**Tarea no encontrada (necesita confirmación):**
-```json
-{
-  "type": "check_task",
-  "task_found": false,
-  "project_id": "uuid",
-  "project_name": "mi-proyecto",
-  "available_statuses": [
-    {"status": "backlog", "color": "#gray"},
-    {"status": "in progress", "color": "#blue"}
-  ],
-  "message": "La tarea \"Nueva tarea\" no existe en ClickUp. ¿Deseas crearla?"
-}
-```
+Usalo para carga retroactiva o manual. Si quieres medir trabajo en tiempo real, usa `start_task_timer` y `stop_task_timer`.
 
-**Error:**
-```json
-{
-  "type": "error",
-  "code": "PROJECT_NOT_FOUND",
-  "message": "Proyecto \"xyz\" no encontrado.",
-  "available_projects": ["proyecto-a", "proyecto-b"]
-}
-```
+### Parametros principales
+
+| Parametro | Tipo | Requerido | Descripcion |
+|-----------|------|-----------|-------------|
+| project_name | string | No | Proyecto en Kudoly. |
+| task_name | string | No | Tarea a reutilizar o crear. |
+| description | string | No | Descripcion de la entrada de tiempo. |
+| duration_hours | number | No | Horas consumidas. |
+| duration_minutes | number | No | Minutos consumidos. |
+| non_technical_summary | string | No | Resumen para negocio o stakeholders. |
+| technical_summary | string | No | Resumen tecnico. |
+| notes | string | No | Contexto adicional. |
+| status | enum | No | `todo`, `in_progress`, `done`. |
+
+Debes informar `task_name` o `description`, y la duracion total debe ser mayor a 0.
+
+## Tool: start_task_timer
+
+Inicia un timer activo en Kudoly para una tarea real de trabajo.
+
+Parametros principales:
+
+| Parametro | Tipo | Requerido | Descripcion |
+|-----------|------|-----------|-------------|
+| project_name | string | No | Proyecto en Kudoly. Se intenta resolver por similitud. |
+| task_name | string | No | Tarea a reutilizar o crear. |
+| task_id | string | No | ID de tarea si ya fue resuelto antes. |
+| description | string | No | Descripcion breve del bloque que empieza. |
+| non_technical_summary | string | No | Objetivo no tecnico del bloque. |
+| technical_summary | string | No | Objetivo tecnico del bloque. |
+
+Debes informar `task_id`, `task_name` o `description`.
+
+## Tool: stop_task_timer
+
+Detiene un timer activo y registra el bloque trabajado.
+
+Parametros principales:
+
+| Parametro | Tipo | Requerido | Descripcion |
+|-----------|------|-----------|-------------|
+| task_id | string | No | ID exacto de la tarea. |
+| task_name | string | No | Nombre de la tarea si no tienes el ID. |
+| project_name | string | No | Ayuda a resolver la tarea correcta. |
+| description | string | No | Descripcion final del bloque. |
+| notes | string | No | Contexto adicional o links. |
+| non_technical_summary | string | No | Resumen final para negocio. |
+| technical_summary | string | No | Resumen final tecnico. |
+| status | enum | No | `todo`, `in_progress`, `done`. Default: `done`. |
+
+Si no informas `task_id` ni `task_name`, el backend solo podra resolverlo cuando haya un unico timer activo.
+
+## Tool: cancel_task_timer
+
+Cancela un timer activo sin registrar tiempo. Sirve para timers iniciados por error o trabajo demasiado pequeno para merecer una entrada.
 
 ## Desarrollo
 
 ```bash
-# Instalar dependencias
 npm install
-
-# Compilar
 npm run build
-
-# Ejecutar tests
 npm test
-
-# Tests con coverage
 npm run test:coverage
-
-# Modo desarrollo (watch)
 npm run dev
 ```
 
-## Estructura del Proyecto
+## Estructura del proyecto
 
-```
+```text
 src/
-├── index.ts                    # Entry point, MCP server setup
-├── tools/
-│   └── submitDailyReport.ts    # Tool principal
-├── services/
-│   └── kudolyApi.ts            # Cliente HTTP para n8n
-├── utils/
-│   └── packageJson.ts          # Utilidad para leer package.json
-└── types/
-    └── index.ts                # Tipos TypeScript
+|-- index.ts
+|-- tools/
+|-- services/
+|-- utils/
+`-- types/
 ```

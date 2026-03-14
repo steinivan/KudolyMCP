@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { KudolyApi, KudolyApiError } from '../services/kudolyApi.js';
 import { getProjectNameFromPackageJson } from '../utils/packageJson.js';
 import type { CheckTaskResponse, ReportStatus } from '../types/index.js';
@@ -101,11 +101,12 @@ export async function submitDailyReport(
     }
 
     // Step 2: Save the report
+    const clickupTaskId = checkResult.task_id || checkResult.clickup_task_id;
     const saveResult = await api.saveReport({
       project_id: checkResult.project_id!,
       project_name: projectName,
       clickup_list_id: checkResult.clickup_list_id,
-      clickup_task_id: checkResult.task_id,
+      clickup_task_id: clickupTaskId,
       task_name: input.task_name,
       activities_string: input.activities_string,
       status: input.status as ReportStatus,

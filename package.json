@@ -1,18 +1,38 @@
 {
   "name": "kudoly-mcp",
   "version": "1.0.0",
-  "description": "MCP Server for Kudoly Daily Reports",
+  "description": "MCP Server for KudolyAI - Send daily reports and developer dailies to your team",
   "type": "module",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
     "kudoly-mcp": "dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "kudoly",
+    "kudolyai",
+    "daily-reports",
+    "developer-tools",
+    "clickup",
+    "standup",
+    "team-reports",
+    "saas"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc",
+    "dev": "node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc --watch",
     "start": "node dist/index.js",
     "test": "vitest",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",

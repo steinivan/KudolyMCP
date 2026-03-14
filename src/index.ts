@@ -2,12 +2,15 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { KudolyApi } from './services/kudolyApi.js';
 import { submitDailyReport, submitDailyReportSchema } from './tools/submitDailyReport.js';
 import { generateDevlog, generateDevlogSchema, GENERATE_DEVLOG_DESCRIPTION } from './tools/generateDevlog.js';
+import { logTimeEntry, logTimeEntrySchema, LOG_TIME_ENTRY_DESCRIPTION } from './tools/logTimeEntry.js';
+import { startTaskTimer, startTaskTimerSchema, START_TASK_TIMER_DESCRIPTION } from './tools/startTaskTimer.js';
+import { stopTaskTimer, stopTaskTimerSchema, STOP_TASK_TIMER_DESCRIPTION } from './tools/stopTaskTimer.js';
+import { cancelTaskTimer, cancelTaskTimerSchema, CANCEL_TASK_TIMER_DESCRIPTION } from './tools/cancelTaskTimer.js';
 
-// Validate environment variables
 const KUDOLY_BASE_URL = process.env.KUDOLY_BASE_URL;
 const KUDOLY_API_TOKEN = process.env.KUDOLY_API_TOKEN;
 
@@ -21,146 +24,200 @@ if (!KUDOLY_API_TOKEN) {
   process.exit(1);
 }
 
-// Create API client
 const api = new KudolyApi(KUDOLY_BASE_URL, KUDOLY_API_TOKEN);
 
-// Create MCP server
 const server = new McpServer({
   name: 'kudoly-mcp',
   version: '1.0.0'
 });
 
-// Tool description with conversation flow instructions
-const TOOL_DESCRIPTION = `Registra una actividad diaria con verificación de tarea en ClickUp.
+const DAILY_TOOL_DESCRIPTION = `Registra una actividad diaria con verificacion de tarea en ClickUp.
 
 IMPORTANTE: NUNCA ejecutes este tool directamente. Sigue este flujo conversacional ANTES de llamar al tool:
 
-1. PROYECTO: Si el usuario no menciona el proyecto, intenta obtenerlo del package.json. Si no es posible, pregunta: "¿En qué proyecto estás trabajando?"
+1. PROYECTO: Si el usuario no menciona el proyecto, intenta obtenerlo del package.json. Si no es posible, pregunta: "¿En que proyecto estas trabajando?"
+2. TAREA: Pregunta: "¿Como se llama la tarea que quieres registrar?"
+3. RESUMEN: Genera un resumen no tecnico, conciso y entendible para stakeholders.
+4. ESTADO: Confirma o infiere el estado.
+5. Solo despues de tener toda la informacion confirmada, ejecuta el tool.
+6. Si task_found=false, pregunta si quiere crear la tarea y con que status de ClickUp.`;
 
-2. TAREA: Pregunta: "¿Cómo se llama la tarea que quieres registrar?"
+function textToolResult(payload: unknown) {
+  return {
+    content: [
+      {
+        type: 'text' as const,
+        text: JSON.stringify(payload, null, 2)
+      }
+    ]
+  };
+}
 
-3. RESUMEN: Analiza el contexto del chat y genera un resumen que:
-   - Sea comprensible para personas no técnicas (stakeholders, managers)
-   - Se enfoque en QUÉ se hizo y PARA QUÉ, no en detalles técnicos
-   - Sea conciso (2-4 oraciones máximo)
-   Muestra el resumen y pregunta: "Este es el resumen para la daily: [resumen]. ¿Quieres registrar esto, o hay algo que deba agregar/modificar?"
+function promptResult(text: string) {
+  return {
+    messages: [
+      {
+        role: 'user' as const,
+        content: {
+          type: 'text' as const,
+          text
+        }
+      }
+    ]
+  };
+}
 
-4. ESTADO: Pregunta: "¿Cuál es el estado? (complete, progress, blocked, upcoming, qa)" o infiere del contexto.
-
-5. Solo después de tener TODA la información confirmada, ejecuta el tool.
-
-6. Si el tool retorna task_found=false, pregunta al usuario si quiere crear la tarea y con qué status de ClickUp.`;
-
-// Register the submit_daily_report tool
-server.tool(
+server.registerTool(
   'submit_daily_report',
-  TOOL_DESCRIPTION,
-  submitDailyReportSchema.shape,
-  async (params) => {
+  {
+    description: DAILY_TOOL_DESCRIPTION,
+    inputSchema: submitDailyReportSchema
+  } as any,
+  (async (params: unknown) => {
     const input = submitDailyReportSchema.parse(params);
     const result = await submitDailyReport(input, api);
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(result, null, 2)
-        }
-      ]
-    };
-  }
+    return textToolResult(result);
+  }) as any
 );
 
-// Register a prompt for guided daily registration
-server.prompt(
-  'register-daily',
-  'Inicia el flujo guiado para registrar una actividad diaria',
+server.registerTool(
+  'generate_devlog',
   {
-    context: z.string().optional().describe('Contexto adicional sobre el trabajo realizado')
+    description: GENERATE_DEVLOG_DESCRIPTION,
+    inputSchema: generateDevlogSchema
+  } as any,
+  (async (params: unknown) => {
+    const input = generateDevlogSchema.parse(params);
+    const result = await generateDevlog(input, api);
+    return textToolResult(result);
+  }) as any
+);
+
+server.registerTool(
+  'log_time_entry',
+  {
+    description: LOG_TIME_ENTRY_DESCRIPTION,
+    inputSchema: logTimeEntrySchema
+  } as any,
+  (async (params: unknown) => {
+    const input = logTimeEntrySchema.parse(params);
+    const result = await logTimeEntry(input, api);
+    return textToolResult(result);
+  }) as any
+);
+
+server.registerTool(
+  'start_task_timer',
+  {
+    description: START_TASK_TIMER_DESCRIPTION,
+    inputSchema: startTaskTimerSchema
+  } as any,
+  (async (params: unknown) => {
+    const input = startTaskTimerSchema.parse(params);
+    const result = await startTaskTimer(input, api);
+    return textToolResult(result);
+  }) as any
+);
+
+server.registerTool(
+  'stop_task_timer',
+  {
+    description: STOP_TASK_TIMER_DESCRIPTION,
+    inputSchema: stopTaskTimerSchema
+  } as any,
+  (async (params: unknown) => {
+    const input = stopTaskTimerSchema.parse(params);
+    const result = await stopTaskTimer(input, api);
+    return textToolResult(result);
+  }) as any
+);
+
+server.registerTool(
+  'cancel_task_timer',
+  {
+    description: CANCEL_TASK_TIMER_DESCRIPTION,
+    inputSchema: cancelTaskTimerSchema
+  } as any,
+  (async (params: unknown) => {
+    const input = cancelTaskTimerSchema.parse(params);
+    const result = await cancelTaskTimer(input, api);
+    return textToolResult(result);
+  }) as any
+);
+
+server.registerPrompt(
+  'register-daily',
+  {
+    description: 'Inicia el flujo guiado para registrar una actividad diaria'
   },
-  async (args) => {
-    const contextInfo = args.context ? `\n\nContexto proporcionado: ${args.context}` : '';
+  (async () => promptResult(
+    `Quiero registrar mi daily de hoy.
 
-    return {
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `Quiero registrar mi daily de hoy.${contextInfo}
-
-Por favor guíame paso a paso:
-1. Primero confirma el proyecto (puedes intentar obtenerlo del package.json)
-2. Pregúntame el nombre de la tarea
-3. Genera un resumen ejecutivo de mis actividades basado en nuestra conversación
+Por favor guiame paso a paso:
+1. Primero confirma el proyecto
+2. Preguntame el nombre de la tarea
+3. Genera un resumen ejecutivo de mis actividades
 4. Confirma el estado de la tarea
 5. Solo entonces usa el tool submit_daily_report
 
 Empecemos.`
-          }
-        }
-      ]
-    };
-  }
+  )) as any
 );
 
-// Register the generate_devlog tool
-server.tool(
-  'generate_devlog',
-  GENERATE_DEVLOG_DESCRIPTION,
-  generateDevlogSchema.shape,
-  async (params) => {
-    const input = generateDevlogSchema.parse(params);
-    const result = await generateDevlog(input, api);
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(result, null, 2)
-        }
-      ]
-    };
-  }
-);
-
-// Register a prompt for guided devlog generation
-server.prompt(
-  'generate-devlog',
-  'Inicia el flujo guiado para generar un DEVLOG de conocimiento',
+server.registerPrompt(
+  'register-time-entry',
   {
-    task_name: z.string().optional().describe('Nombre de la tarea para el DEVLOG')
+    description: 'Inicia el flujo guiado para registrar una entrada de tiempo'
   },
-  async (args) => {
-    const taskInfo = args.task_name ? `\n\nTarea especificada: ${args.task_name}` : '';
-
-    return {
-      messages: [
-        {
-          role: 'user',
-          content: {
-            type: 'text',
-            text: `Quiero generar un DEVLOG para documentar el trabajo que hicimos.${taskInfo}
+  (async () => promptResult(
+    `Quiero registrar una entrada de tiempo en Kudoly.
 
 Por favor:
-1. Confirma el proyecto (del package.json o pregúntame)
-2. Confirma la tarea donde guardar el DEVLOG
-3. Analiza TODO nuestro historial de chat: código escrito, archivos creados, decisiones tomadas, problemas resueltos
-4. Genera un DEVLOG completo con la estructura estándar (contexto, qué se hizo, decisiones técnicas, implementación, problemas, configuración, limitaciones)
-5. Muéstrame el DEVLOG y déjame revisar/modificar antes de guardarlo
-6. Solo cuando lo apruebe, usa el tool generate_devlog
-
-El DEVLOG debe ser autocontenido - alguien que no vio este chat debe entender completamente qué se hizo y por qué.
-
-Empecemos.`
-          }
-        }
-      ]
-    };
-  }
+1. Identifica proyecto y tarea si se pueden inferir
+2. Genera un resumen no tecnico breve
+3. Genera un resumen tecnico breve
+4. Estima horas y minutos consumidos
+5. Confirma cualquier dato faltante
+6. Solo al final usa el tool log_time_entry`
+  )) as any
 );
 
-// Start the server
+server.registerPrompt(
+  'track-work-session',
+  {
+    description: 'Inicia el flujo guiado para medir una sesion de trabajo real en Kudoly'
+  },
+  (async () => promptResult(
+    `Quiero registrar trabajo real en Kudoly.
+
+Por favor:
+1. Decide si esto merece timer o si es una microinteraccion que no debe registrarse
+2. Si merece timer, infiere o confirma proyecto y tarea
+3. Usa start_task_timer solo cuando empiece trabajo sustancial
+4. Al terminar, genera resumen no tecnico y tecnico
+5. Usa stop_task_timer para cerrar el bloque
+6. Si el timer se inicio por error o el trabajo fue insignificante, usa cancel_task_timer`
+  )) as any
+);
+
+server.registerPrompt(
+  'generate-devlog',
+  {
+    description: 'Inicia el flujo guiado para generar un DEVLOG de conocimiento'
+  },
+  (async () => promptResult(
+    `Quiero generar un DEVLOG para documentar el trabajo que hicimos.
+
+Por favor:
+1. Confirma el proyecto
+2. Confirma la tarea donde guardar el DEVLOG
+3. Analiza todo el historial de trabajo relevante
+4. Genera un DEVLOG completo con contexto, implementacion, problemas y limitaciones
+5. Muestrame el DEVLOG y dejame revisarlo
+6. Solo cuando lo apruebe, usa el tool generate_devlog`
+  )) as any
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

@@ -152,3 +152,41 @@ export interface CancelTaskTimerResponse {
   cancelled: boolean;
   message: string;
 }
+
+export interface AvailableProject {
+  id: string;
+  name: string;
+}
+
+export interface ListAvailableProjectsResponse {
+  projects: AvailableProject[];
+  total: number;
+}
+
+export interface RecentTask {
+  id: string;
+  title: string;
+  description?: string | null;
+  project_id?: string | null;
+  project_name?: string | null;
+  status: TimeEntryStatus;
+  is_running: boolean;
+  total_seconds: number;
+  updated_at: string;
+  last_activity_at?: string | null;
+  last_session_description?: string | null;
+}
+
+export interface ListRecentTasksRequest {
+  user_email?: string;
+  project?: string | null;
+  project_id?: string;
+  limit?: number;
+}
+
+export interface ListRecentTasksResponse {
+  tasks: RecentTask[];
+  total: number;
+  project_id?: string | null;
+  project_name?: string | null;
+}

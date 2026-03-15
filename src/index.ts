@@ -10,6 +10,8 @@ import { logTimeEntry, logTimeEntrySchema, LOG_TIME_ENTRY_DESCRIPTION } from './
 import { startTaskTimer, startTaskTimerSchema, START_TASK_TIMER_DESCRIPTION } from './tools/startTaskTimer.js';
 import { stopTaskTimer, stopTaskTimerSchema, STOP_TASK_TIMER_DESCRIPTION } from './tools/stopTaskTimer.js';
 import { cancelTaskTimer, cancelTaskTimerSchema, CANCEL_TASK_TIMER_DESCRIPTION } from './tools/cancelTaskTimer.js';
+import { listAvailableProjects, listAvailableProjectsSchema, LIST_AVAILABLE_PROJECTS_DESCRIPTION } from './tools/listAvailableProjects.js';
+import { listRecentTasks, listRecentTasksSchema, LIST_RECENT_TASKS_DESCRIPTION } from './tools/listRecentTasks.js';
 
 const KUDOLY_BASE_URL = process.env.KUDOLY_BASE_URL;
 const KUDOLY_API_TOKEN = process.env.KUDOLY_API_TOKEN;
@@ -107,6 +109,32 @@ server.registerTool(
 );
 
 server.registerTool(
+  'list_available_projects',
+  {
+    description: LIST_AVAILABLE_PROJECTS_DESCRIPTION,
+    inputSchema: listAvailableProjectsSchema
+  } as any,
+  (async (params: unknown) => {
+    const input = listAvailableProjectsSchema.parse(params);
+    const result = await listAvailableProjects(input, api);
+    return textToolResult(result);
+  }) as any
+);
+
+server.registerTool(
+  'list_recent_tasks',
+  {
+    description: LIST_RECENT_TASKS_DESCRIPTION,
+    inputSchema: listRecentTasksSchema
+  } as any,
+  (async (params: unknown) => {
+    const input = listRecentTasksSchema.parse(params);
+    const result = await listRecentTasks(input, api);
+    return textToolResult(result);
+  }) as any
+);
+
+server.registerTool(
   'start_task_timer',
   {
     description: START_TASK_TIMER_DESCRIPTION,
@@ -193,10 +221,12 @@ server.registerPrompt(
 Por favor:
 1. Decide si esto merece timer o si es una microinteraccion que no debe registrarse
 2. Si merece timer, infiere o confirma proyecto y tarea
-3. Usa start_task_timer solo cuando empiece trabajo sustancial
-4. Al terminar, genera resumen no tecnico y tecnico
-5. Usa stop_task_timer para cerrar el bloque
-6. Si el timer se inicio por error o el trabajo fue insignificante, usa cancel_task_timer`
+3. Si proyecto o tarea no estan claros, usa list_available_projects y list_recent_tasks antes de abrir una tarea nueva
+4. Reutiliza una tarea reciente si claramente pertenece al mismo workstream
+5. Usa start_task_timer solo cuando empiece trabajo sustancial
+6. Al terminar, genera resumen no tecnico y tecnico
+7. Usa stop_task_timer para cerrar el bloque
+8. Si el timer se inicio por error o el trabajo fue insignificante, usa cancel_task_timer`
   )) as any
 );
 

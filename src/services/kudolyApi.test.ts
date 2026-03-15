@@ -303,5 +303,72 @@ describe('KudolyApi', () => {
         expect.objectContaining({ method: 'POST' })
       );
     });
+
+    it('lists available projects', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({
+          success: true,
+          data: {
+            projects: [
+              { id: 'project-1', name: 'Kudoly' },
+              { id: 'project-2', name: 'Tasauto' }
+            ],
+            total: 2
+          }
+        })
+      });
+
+      const api = new KudolyApi(baseUrl, token);
+      const result = await api.listAvailableProjects();
+
+      expect(result.total).toBe(2);
+      expect(result.projects[0].name).toBe('Kudoly');
+      expect(fetch).toHaveBeenCalledWith(
+        `${baseUrl}/api/v1/time-entries/projects`,
+        expect.objectContaining({ method: 'GET' })
+      );
+    });
+
+    it('lists recent tasks with project filter', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({
+          success: true,
+          data: {
+            tasks: [
+              {
+                id: 'task-123',
+                title: 'Optimizar Time',
+                project_id: 'project-1',
+                project_name: 'Kudoly',
+                status: 'in_progress',
+                is_running: false,
+                total_seconds: 5400,
+                updated_at: '2026-03-14T12:00:00.000Z'
+              }
+            ],
+            total: 1,
+            project_id: 'project-1',
+            project_name: 'Kudoly'
+          }
+        })
+      });
+
+      const api = new KudolyApi(baseUrl, token);
+      const result = await api.listRecentTasks({
+        project: 'Kudoly',
+        limit: 5
+      });
+
+      expect(result.total).toBe(1);
+      expect(result.tasks[0].title).toBe('Optimizar Time');
+      expect(fetch).toHaveBeenCalledWith(
+        `${baseUrl}/api/v1/time-entries/tasks/recent?project=Kudoly&limit=5`,
+        expect.objectContaining({ method: 'GET' })
+      );
+    });
   });
 });

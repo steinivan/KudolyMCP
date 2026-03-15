@@ -1,4 +1,7 @@
 import type {
+  ListAvailableProjectsResponse,
+  ListRecentTasksRequest,
+  ListRecentTasksResponse,
   CancelTaskTimerRequest,
   CancelTaskTimerResponse,
   CheckTaskRequest,
@@ -40,16 +43,32 @@ export class KudolyApi {
     }
   }
 
-  private async request<T>(endpoint: string, body: object): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
+  private async request<T>(
+    endpoint: string,
+    options: {
+      method?: 'GET' | 'POST';
+      body?: object;
+      query?: Record<string, string | number | null | undefined>;
+    } = {}
+  ): Promise<T> {
+    const queryString = options.query
+      ? new URLSearchParams(
+          Object.entries(options.query)
+            .filter(([, value]) => value !== undefined && value !== null && value !== '')
+            .map(([key, value]) => [key, String(value)] as [string, string])
+        ).toString()
+      : '';
+
+    const url = `${this.baseUrl}${endpoint}${queryString ? `?${queryString}` : ''}`;
+    const method = options.method || 'POST';
 
     const response = await fetch(url, {
-      method: 'POST',
+      method,
       headers: {
-        'Content-Type': 'application/json',
+        ...(method === 'GET' ? {} : { 'Content-Type': 'application/json' }),
         'Authorization': `Bearer ${this.token}`
       },
-      body: JSON.stringify(body)
+      body: method === 'GET' ? undefined : JSON.stringify(options.body || {})
     });
 
     // Always try to parse JSON response
@@ -96,30 +115,48 @@ export class KudolyApi {
   }
 
   async checkTask(request: CheckTaskRequest): Promise<CheckTaskResponse> {
-    return this.request<CheckTaskResponse>('/daily-check-task', request);
+    return this.request<CheckTaskResponse>('/daily-check-task', { body: request });
   }
 
   async saveReport(request: SaveReportRequest): Promise<SaveReportResponse> {
-    return this.request<SaveReportResponse>('/daily-save-report', request);
+    return this.request<SaveReportResponse>('/daily-save-report', { body: request });
   }
 
   async saveDevlog(request: SaveDevlogRequest): Promise<SaveDevlogResponse> {
-    return this.request<SaveDevlogResponse>('/daily-save-devlog', request);
+    return this.request<SaveDevlogResponse>('/daily-save-devlog', { body: request });
   }
 
   async saveTimeEntry(request: SaveTimeEntryRequest): Promise<SaveTimeEntryResponse> {
-    return this.request<SaveTimeEntryResponse>('/api/v1/time-entries', request);
+    return this.request<SaveTimeEntryResponse>('/api/v1/time-entries', { body: request });
   }
 
   async startTaskTimer(request: StartTaskTimerRequest): Promise<StartTaskTimerResponse> {
-    return this.request<StartTaskTimerResponse>('/api/v1/time-entries/start', request);
+    return this.request<StartTaskTimerResponse>('/api/v1/time-entries/start', { body: request });
   }
 
   async stopTaskTimer(request: StopTaskTimerRequest): Promise<StopTaskTimerResponse> {
-    return this.request<StopTaskTimerResponse>('/api/v1/time-entries/stop', request);
+    return this.request<StopTaskTimerResponse>('/api/v1/time-entries/stop', { body: request });
   }
 
   async cancelTaskTimer(request: CancelTaskTimerRequest): Promise<CancelTaskTimerResponse> {
-    return this.request<CancelTaskTimerResponse>('/api/v1/time-entries/cancel', request);
+    return this.request<CancelTaskTimerResponse>('/api/v1/time-entries/cancel', { body: request });
+  }
+
+  async listAvailableProjects(): Promise<ListAvailableProjectsResponse> {
+    return this.request<ListAvailableProjectsResponse>('/api/v1/time-entries/projects', {
+      method: 'GET'
+    });
+  }
+
+  async listRecentTasks(request: ListRecentTasksRequest): Promise<ListRecentTasksResponse> {
+    return this.request<ListRecentTasksResponse>('/api/v1/time-entries/tasks/recent', {
+      method: 'GET',
+      query: {
+        user_email: request.user_email,
+        project: request.project,
+        project_id: request.project_id,
+        limit: request.limit
+      }
+    });
   }
 }

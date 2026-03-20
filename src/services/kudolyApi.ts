@@ -31,16 +31,26 @@ export class KudolyApiError extends Error {
 }
 
 export class KudolyApi {
+  private readonly baseUrl: string
+  private readonly tokenProvider: () => Promise<string>
+
   constructor(
-    private baseUrl: string,
-    private token: string
+    baseUrl: string,
+    tokenProvider: () => Promise<string>
   ) {
     if (!baseUrl) {
-      throw new Error('KUDOLY_BASE_URL is required');
+      throw new Error('Base URL is required');
     }
-    if (!token) {
-      throw new Error('KUDOLY_API_TOKEN is required');
+    if (!tokenProvider) {
+      throw new Error('OAuth token provider is required');
     }
+
+    this.baseUrl = baseUrl.replace(/\/+$/, '');
+    this.tokenProvider = tokenProvider;
+  }
+
+  private async resolveToken(): Promise<string> {
+    return this.tokenProvider();
   }
 
   private async request<T>(
@@ -62,11 +72,13 @@ export class KudolyApi {
     const url = `${this.baseUrl}${endpoint}${queryString ? `?${queryString}` : ''}`;
     const method = options.method || 'POST';
 
+    const token = await this.resolveToken();
+
     const response = await fetch(url, {
       method,
       headers: {
         ...(method === 'GET' ? {} : { 'Content-Type': 'application/json' }),
-        'Authorization': `Bearer ${this.token}`
+        'Authorization': `Bearer ${token}`
       },
       body: method === 'GET' ? undefined : JSON.stringify(options.body || {})
     });
@@ -82,7 +94,7 @@ export class KudolyApi {
     // Handle HTTP errors with parsed body
     if (response.status === 401) {
       throw new KudolyApiError(
-        data?.error || 'Invalid or expired token',
+        data?.error || 'Invalid or expired credentials',
         401,
         'UNAUTHORIZED'
       );
@@ -155,6 +167,7 @@ export class KudolyApi {
         user_email: request.user_email,
         project: request.project,
         project_id: request.project_id,
+        status: request.status,
         limit: request.limit
       }
     });

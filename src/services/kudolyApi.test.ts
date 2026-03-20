@@ -15,15 +15,15 @@ describe('KudolyApi', () => {
 
   describe('constructor', () => {
     it('throws error when baseUrl is missing', () => {
-      expect(() => new KudolyApi('', token)).toThrow('KUDOLY_BASE_URL is required');
+      expect(() => new KudolyApi('', async () => token)).toThrow('Base URL is required');
     });
 
-    it('throws error when token is missing', () => {
-      expect(() => new KudolyApi(baseUrl, '')).toThrow('KUDOLY_API_TOKEN is required');
+    it('throws error when auth source is missing', () => {
+      expect(() => new KudolyApi(baseUrl, undefined as any)).toThrow('OAuth token provider is required');
     });
 
     it('creates instance with valid params', () => {
-      const api = new KudolyApi(baseUrl, token);
+      const api = new KudolyApi(baseUrl, async () => token);
       expect(api).toBeInstanceOf(KudolyApi);
     });
   });
@@ -43,7 +43,7 @@ describe('KudolyApi', () => {
         json: () => Promise.resolve(mockResponse)
       });
 
-      const api = new KudolyApi(baseUrl, token);
+      const api = new KudolyApi(baseUrl, async () => token);
       const result = await api.checkTask({
         project_name: 'my-project',
         task_name: 'my-task'
@@ -83,7 +83,7 @@ describe('KudolyApi', () => {
         json: () => Promise.resolve(mockResponse)
       });
 
-      const api = new KudolyApi(baseUrl, token);
+      const api = new KudolyApi(baseUrl, async () => token);
       const result = await api.checkTask({
         project_name: 'my-project',
         task_name: 'new-task'
@@ -100,7 +100,7 @@ describe('KudolyApi', () => {
         statusText: 'Unauthorized'
       });
 
-      const api = new KudolyApi(baseUrl, token);
+      const api = new KudolyApi(baseUrl, async () => token);
 
       await expect(
         api.checkTask({ project_name: 'test', task_name: 'test' })
@@ -115,11 +115,33 @@ describe('KudolyApi', () => {
         json: () => Promise.resolve({ error: 'Server error' })
       });
 
-      const api = new KudolyApi(baseUrl, token);
+      const api = new KudolyApi(baseUrl, async () => token);
 
       await expect(
         api.checkTask({ project_name: 'test', task_name: 'test' })
       ).rejects.toThrow('Server error');
+    });
+
+    it('uses async token source when provided', async () => {
+      const getToken = vi.fn().mockResolvedValue(token);
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ task_found: false })
+      });
+
+      const api = new KudolyApi(baseUrl, getToken);
+      await api.checkTask({ project_name: 'test', task_name: 'test' });
+
+      expect(getToken).toHaveBeenCalledTimes(1);
+      expect(fetch).toHaveBeenCalledWith(
+        `${baseUrl}/daily-check-task`,
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: `Bearer ${token}`
+          })
+        })
+      );
     });
   });
 
@@ -137,7 +159,7 @@ describe('KudolyApi', () => {
         json: () => Promise.resolve(mockResponse)
       });
 
-      const api = new KudolyApi(baseUrl, token);
+      const api = new KudolyApi(baseUrl, async () => token);
       const result = await api.saveReport({
         project_id: 'project-456',
         project_name: 'my-project',
@@ -171,7 +193,7 @@ describe('KudolyApi', () => {
         json: () => Promise.resolve(mockResponse)
       });
 
-      const api = new KudolyApi(baseUrl, token);
+      const api = new KudolyApi(baseUrl, async () => token);
       const result = await api.saveReport({
         project_id: 'project-456',
         project_name: 'my-project',
@@ -202,7 +224,7 @@ describe('KudolyApi', () => {
         })
       });
 
-      const api = new KudolyApi(baseUrl, token);
+      const api = new KudolyApi(baseUrl, async () => token);
       const result = await api.saveTimeEntry({
         user_email: 'dev@test.com',
         task: 'Tracker',
@@ -232,7 +254,7 @@ describe('KudolyApi', () => {
         })
       });
 
-      const api = new KudolyApi(baseUrl, token);
+      const api = new KudolyApi(baseUrl, async () => token);
       const result = await api.startTaskTimer({
         user_email: 'dev@test.com',
         task: 'Implementar tracker',
@@ -262,7 +284,7 @@ describe('KudolyApi', () => {
         })
       });
 
-      const api = new KudolyApi(baseUrl, token);
+      const api = new KudolyApi(baseUrl, async () => token);
       const result = await api.stopTaskTimer({
         user_email: 'dev@test.com',
         task_id: 'task-123',
@@ -291,7 +313,7 @@ describe('KudolyApi', () => {
         })
       });
 
-      const api = new KudolyApi(baseUrl, token);
+      const api = new KudolyApi(baseUrl, async () => token);
       const result = await api.cancelTaskTimer({
         user_email: 'dev@test.com',
         task_id: 'task-123'
@@ -320,7 +342,7 @@ describe('KudolyApi', () => {
         })
       });
 
-      const api = new KudolyApi(baseUrl, token);
+      const api = new KudolyApi(baseUrl, async () => token);
       const result = await api.listAvailableProjects();
 
       expect(result.total).toBe(2);
@@ -357,7 +379,7 @@ describe('KudolyApi', () => {
         })
       });
 
-      const api = new KudolyApi(baseUrl, token);
+      const api = new KudolyApi(baseUrl, async () => token);
       const result = await api.listRecentTasks({
         project: 'Kudoly',
         limit: 5

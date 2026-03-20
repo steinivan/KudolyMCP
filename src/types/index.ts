@@ -71,7 +71,7 @@ export interface SaveDevlogResponse {
 }
 
 // Time entry types
-export type TimeEntryStatus = 'todo' | 'in_progress' | 'done';
+export type TimeEntryStatus = 'backlog' | 'in_progress' | 'qa' | 'complete' | 'todo' | 'done';
 export type TimeEntrySource = 'manual' | 'ai' | 'clockify';
 
 export interface SaveTimeEntryRequest {
@@ -167,6 +167,16 @@ export interface RecentTask {
   id: string;
   title: string;
   description?: string | null;
+  technical_summary?: string | null;
+  non_technical_summary?: string | null;
+  attachments?: Array<{
+    id: string;
+    file_name: string;
+    file_type?: string | null;
+    file_size?: number | null;
+    public_url: string;
+    created_at: string;
+  }>;
   project_id?: string | null;
   project_name?: string | null;
   status: TimeEntryStatus;
@@ -181,6 +191,7 @@ export interface ListRecentTasksRequest {
   user_email?: string;
   project?: string | null;
   project_id?: string;
+  status?: TimeEntryStatus;
   limit?: number;
 }
 

@@ -1,5 +1,6 @@
-import { z } from 'zod/v3';
+﻿import { z } from 'zod/v3';
 import { KudolyApi, KudolyApiError } from '../services/kudolyApi.js';
+import { maybeThrowOAuthElicitationError } from './oauthElicitation.js';
 
 const logTimeEntryBaseSchema = z.object({
   project_name: z.string().optional().describe('Nombre del proyecto en Kudoly'),
@@ -10,7 +11,7 @@ const logTimeEntryBaseSchema = z.object({
   notes: z.string().optional().describe('Notas libres, links o contexto extra'),
   non_technical_summary: z.string().optional().describe('Resumen comprensible para negocio o stakeholders'),
   technical_summary: z.string().optional().describe('Resumen tecnico con implementacion, archivos, endpoints o decisiones'),
-  status: z.enum(['todo', 'in_progress', 'done']).default('done').describe('Estado final de la tarea'),
+  status: z.enum(['backlog', 'in_progress', 'qa', 'complete', 'todo', 'done']).default('qa').describe('Estado final de la tarea'),
   source: z.enum(['manual', 'ai', 'clockify']).default('ai').describe('Origen del registro'),
 });
 
@@ -73,6 +74,8 @@ export async function logTimeEntry(
       message: result.message || 'Tiempo registrado correctamente.',
     };
   } catch (error) {
+    maybeThrowOAuthElicitationError(error);
+
     if (error instanceof KudolyApiError) {
       if (error.code === 'UNAUTHORIZED' || error.statusCode === 401) {
         return {
@@ -116,3 +119,4 @@ Flujo recomendado antes de ejecutar el tool:
 3. Calcula o estima horas y minutos invertidos porque este tool no mide tiempo real.
 4. Confirma proyecto/tarea solo si el contexto no los deja claros.
 5. Ejecuta el tool al cerrar el trabajo.`;
+

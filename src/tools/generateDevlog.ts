@@ -1,10 +1,11 @@
-import { z } from 'zod/v3';
+﻿import { z } from 'zod/v3';
 import { KudolyApi, KudolyApiError } from '../services/kudolyApi.js';
+import { maybeThrowOAuthElicitationError } from './oauthElicitation.js';
 import { getProjectNameFromPackageJson } from '../utils/packageJson.js';
 
 export const generateDevlogSchema = z.object({
   project_name: z.string().optional().describe('Nombre del proyecto. Si no se proporciona, se intenta obtener del package.json'),
-  task_name: z.string().describe('Nombre de la tarea en ClickUp donde se guardará el DEVLOG'),
+  task_name: z.string().describe('Nombre de la tarea en ClickUp donde se guardarÃ¡ el DEVLOG'),
   devlog_content: z.string().describe('Contenido del DEVLOG en formato markdown')
 });
 
@@ -40,7 +41,7 @@ export async function generateDevlog(
     return {
       type: 'error',
       code: 'PROJECT_NAME_REQUIRED',
-      message: 'No se pudo determinar el nombre del proyecto. Por favor especifícalo.'
+      message: 'No se pudo determinar el nombre del proyecto. Por favor especifÃ­calo.'
     };
   }
 
@@ -56,7 +57,7 @@ export async function generateDevlog(
     return {
       type: 'error',
       code: 'DEVLOG_CONTENT_REQUIRED',
-      message: 'El contenido del DEVLOG no puede estar vacío.'
+      message: 'El contenido del DEVLOG no puede estar vacÃ­o.'
     };
   }
 
@@ -77,6 +78,8 @@ export async function generateDevlog(
     };
 
   } catch (error) {
+    maybeThrowOAuthElicitationError(error);
+
     if (error instanceof KudolyApiError) {
       if (error.code === 'TASK_NOT_FOUND') {
         return {
@@ -98,7 +101,7 @@ export async function generateDevlog(
         return {
           type: 'error',
           code: 'UNAUTHORIZED',
-          message: 'Token inválido o expirado.'
+          message: 'Token invÃ¡lido o expirado.'
         };
       }
 
@@ -123,60 +126,61 @@ export const GENERATE_DEVLOG_DESCRIPTION = `Genera y guarda un documento de cono
 IMPORTANTE: NUNCA ejecutes este tool directamente. Sigue este flujo conversacional ANTES de llamar al tool:
 
 1. PROYECTO Y TAREA:
-   - Proyecto: obtener del package.json o preguntar "¿En qué proyecto estás trabajando?"
-   - Tarea: preguntar "¿Para qué tarea quieres generar el DEVLOG?"
+   - Proyecto: obtener del package.json o preguntar "Â¿En quÃ© proyecto estÃ¡s trabajando?"
+   - Tarea: preguntar "Â¿Para quÃ© tarea quieres generar el DEVLOG?"
 
 2. ANALIZAR CONTEXTO COMPLETO:
    Revisar TODO el historial del chat incluyendo:
-   - Código escrito o modificado
+   - CÃ³digo escrito o modificado
    - Archivos creados
    - Comandos ejecutados
-   - Errores encontrados y cómo se resolvieron
-   - Decisiones tomadas durante la conversación
+   - Errores encontrados y cÃ³mo se resolvieron
+   - Decisiones tomadas durante la conversaciÃ³n
 
 3. GENERAR DEVLOG con esta estructura:
    ---
    proyecto: [nombre]
    tarea: [nombre]
    fecha: [YYYY-MM-DD]
-   tags: [tecnologías, conceptos clave]
+   tags: [tecnologÃ­as, conceptos clave]
    ---
 
-   # [Título descriptivo]
+   # [TÃ­tulo descriptivo]
 
    ## Contexto
-   [Por qué se necesitaba este cambio]
+   [Por quÃ© se necesitaba este cambio]
 
-   ## Qué se hizo
-   [Descripción clara de la solución]
+   ## QuÃ© se hizo
+   [DescripciÃ³n clara de la soluciÃ³n]
 
-   ## Decisiones técnicas
-   [Cada decisión con su justificación, alternativas y trade-offs]
+   ## Decisiones tÃ©cnicas
+   [Cada decisiÃ³n con su justificaciÃ³n, alternativas y trade-offs]
 
-   ## Implementación
+   ## ImplementaciÃ³n
    [Archivos involucrados, flujo de datos, dependencias]
 
    ## Problemas y soluciones
-   [Errores encontrados, causas, cómo se resolvieron]
+   [Errores encontrados, causas, cÃ³mo se resolvieron]
 
-   ## Configuración y uso
-   [Cómo ejecutar/probar, variables de entorno]
+   ## ConfiguraciÃ³n y uso
+   [CÃ³mo ejecutar/probar, variables de entorno]
 
    ## Limitaciones conocidas
-   [Qué NO hace, edge cases, mejoras pendientes]
+   [QuÃ© NO hace, edge cases, mejoras pendientes]
 
-   ## Keywords para búsqueda
-   [Términos relevantes para encontrar este documento]
+   ## Keywords para bÃºsqueda
+   [TÃ©rminos relevantes para encontrar este documento]
 
 4. MOSTRAR PREVIEW Y CONFIRMAR:
-   "Este es el DEVLOG generado. ¿Quieres guardarlo así, o necesitas ajustar algo?"
-   - Permitir múltiples iteraciones hasta que el usuario esté satisfecho
+   "Este es el DEVLOG generado. Â¿Quieres guardarlo asÃ­, o necesitas ajustar algo?"
+   - Permitir mÃºltiples iteraciones hasta que el usuario estÃ© satisfecho
 
 5. Solo entonces ejecutar el tool con el contenido final.
 
 PRINCIPIOS para buen contenido:
 - Autocontenido: entendible sin ver el chat original
-- Contextual: incluir el POR QUÉ, no solo el QUÉ
+- Contextual: incluir el POR QUÃ‰, no solo el QUÃ‰
 - Buscable: usar keywords relevantes
 - Preciso: nombres exactos de archivos y funciones
-- Honesto: documentar limitaciones y deuda técnica`;
+- Honesto: documentar limitaciones y deuda tÃ©cnica`;
+

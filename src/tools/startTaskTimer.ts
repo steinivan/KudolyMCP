@@ -1,5 +1,6 @@
-import { z } from 'zod/v3';
+﻿import { z } from 'zod/v3';
 import { KudolyApi, KudolyApiError } from '../services/kudolyApi.js';
+import { maybeThrowOAuthElicitationError } from './oauthElicitation.js';
 
 const startTaskTimerBaseSchema = z.object({
   project_name: z.string().optional().describe('Nombre del proyecto en Kudoly. Se intenta resolver por similitud'),
@@ -64,6 +65,8 @@ export async function startTaskTimer(
       message: result.message || 'Timer iniciado correctamente.',
     };
   } catch (error) {
+    maybeThrowOAuthElicitationError(error);
+
     if (error instanceof KudolyApiError) {
       if (error.code === 'UNAUTHORIZED' || error.statusCode === 401) {
         return {
@@ -99,3 +102,4 @@ Usalo cuando el pedido del usuario ya se convirtio en trabajo real:
 No lo uses para microinteracciones, preguntas cortas o respuestas conceptuales que no justifican una tarea.
 
 El backend intenta resolver el proyecto por similitud y reutiliza una tarea abierta si encuentra una coincidente.`;
+

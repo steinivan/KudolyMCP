@@ -11,33 +11,41 @@ npm run build
 
 ## Configuracion
 
-Crea un archivo `.env`:
+El MCP expone un endpoint `streamable-http` local y usa OAuth de produccion en `https://www.kudolyai.com`.
+
+Variables opcionales:
 
 ```env
-KUDOLY_BASE_URL=https://tu-app-kudoly.com
-KUDOLY_API_TOKEN=tu-token-de-kudoly
+KUDOLY_MCP_PORT=3737
+KUDOLY_MCP_HOST=127.0.0.1
+# KUDOLY_MCP_PUBLIC_URL=http://127.0.0.1:3737
 ```
-
-`KUDOLY_BASE_URL` debe apuntar a la app Next de Kudoly. Los tools MCP usan el backend web de Kudoly, no los webhooks de n8n.
 
 ## Uso con Claude Desktop
 
-Agrega esto a `claude_desktop_config.json`:
+1. Levanta el servidor MCP:
+
+```bash
+npm run build
+npm start
+```
+
+2. Agrega esto a `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "kudoly": {
-      "command": "node",
-      "args": ["C:/ruta/al/proyecto/dist/index.js"],
-      "env": {
-        "KUDOLY_BASE_URL": "https://tu-app-kudoly.com",
-        "KUDOLY_API_TOKEN": "tu-token-de-kudoly"
-      }
+      "type": "streamable-http",
+      "url": "http://127.0.0.1:3737/mcp"
     }
   }
 }
 ```
+
+Para produccion administrada, puedes exponer este mismo endpoint detras de tu dominio (por ejemplo `https://www.kudolyai.com/mcp`).
+
+Si no hay token OAuth, el cliente muestra el badge/accion `Autenticarse` usando el flujo OAuth estandar de MCP (`401 + WWW-Authenticate + resource_metadata`).
 
 ## Tool: submit_daily_report
 
@@ -63,6 +71,7 @@ Genera y guarda un archivo `DEVLOG.md` como adjunto en una tarea de ClickUp.
 Registra una entrada de tiempo en el dashboard `Time` de Kudoly.
 
 Usalo para carga retroactiva o manual. Si quieres medir trabajo en tiempo real, usa `start_task_timer` y `stop_task_timer`.
+El MCP prioriza y recupera primero las tareas en `in_progress`; crea briefs en `backlog` y muévelos cuando el trabajo arranque.
 
 ### Parametros principales
 
@@ -76,7 +85,7 @@ Usalo para carga retroactiva o manual. Si quieres medir trabajo en tiempo real, 
 | non_technical_summary | string | No | Resumen para negocio o stakeholders. |
 | technical_summary | string | No | Resumen tecnico. |
 | notes | string | No | Contexto adicional. |
-| status | enum | No | `todo`, `in_progress`, `done`. |
+| status | enum | No | `backlog`, `in_progress`, `qa`, `complete` (se aceptan `todo`/`done` como legacy). Default recomendado para bloques terminados: `qa`. |
 
 Debes informar `task_name` o `description`, y la duracion total debe ser mayor a 0.
 
@@ -112,7 +121,7 @@ Parametros principales:
 | notes | string | No | Contexto adicional o links. |
 | non_technical_summary | string | No | Resumen final para negocio. |
 | technical_summary | string | No | Resumen final tecnico. |
-| status | enum | No | `todo`, `in_progress`, `done`. Default: `done`. |
+| status | enum | No | `backlog`, `in_progress`, `qa`, `complete`. Default: `qa`. (Legacy: `todo`/`done`). |
 
 Si no informas `task_id` ni `task_name`, el backend solo podra resolverlo cuando haya un unico timer activo.
 

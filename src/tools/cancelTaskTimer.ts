@@ -1,5 +1,6 @@
 import { z } from 'zod/v3';
 import { KudolyApi, KudolyApiError } from '../services/kudolyApi.js';
+import { maybeThrowOAuthElicitationError } from './oauthElicitation.js';
 
 const cancelTaskTimerBaseSchema = z.object({
   project_name: z.string().optional().describe('Nombre del proyecto para ayudar a resolver la tarea'),
@@ -45,6 +46,8 @@ export async function cancelTaskTimer(
       message: result.message || 'Timer cancelado sin registrar tiempo.',
     };
   } catch (error) {
+    maybeThrowOAuthElicitationError(error);
+
     if (error instanceof KudolyApiError) {
       if (error.code === 'UNAUTHORIZED' || error.statusCode === 401) {
         return {

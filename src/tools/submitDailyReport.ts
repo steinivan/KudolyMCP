@@ -1,12 +1,13 @@
-import { z } from 'zod/v3';
+﻿import { z } from 'zod/v3';
 import { KudolyApi, KudolyApiError } from '../services/kudolyApi.js';
+import { maybeThrowOAuthElicitationError } from './oauthElicitation.js';
 import { getProjectNameFromPackageJson } from '../utils/packageJson.js';
 import type { CheckTaskResponse, ReportStatus } from '../types/index.js';
 
 export const submitDailyReportSchema = z.object({
   project_name: z.string().optional().describe('Nombre del proyecto. Si no se proporciona, se intenta obtener del package.json'),
   task_name: z.string().optional().describe('Nombre de la tarea en ClickUp'),
-  activities_string: z.string().describe('Descripción de las actividades realizadas'),
+  activities_string: z.string().describe('DescripciÃ³n de las actividades realizadas'),
   status: z.enum(['complete', 'progress', 'blocked', 'upcoming', 'qa']).default('progress').describe('Estado de la tarea'),
   create_task: z.boolean().default(false).describe('Si es true, crea la tarea en ClickUp si no existe'),
   clickup_status: z.string().optional().describe('Status de ClickUp para la nueva tarea (requerido si create_task=true)')
@@ -58,7 +59,7 @@ export async function submitDailyReport(
     return {
       type: 'error',
       code: 'PROJECT_NAME_REQUIRED',
-      message: 'No se pudo determinar el nombre del proyecto. Por favor especifícalo.'
+      message: 'No se pudo determinar el nombre del proyecto. Por favor especifÃ­calo.'
     };
   }
 
@@ -87,7 +88,7 @@ export async function submitDailyReport(
         project_name: projectName,
         clickup_list_id: checkResult.clickup_list_id,
         available_statuses: checkResult.available_statuses,
-        message: `La tarea "${input.task_name}" no existe en ClickUp. ¿Deseas crearla?`
+        message: `La tarea "${input.task_name}" no existe en ClickUp. Â¿Deseas crearla?`
       };
     }
 
@@ -127,6 +128,8 @@ export async function submitDailyReport(
     };
 
   } catch (error) {
+    maybeThrowOAuthElicitationError(error);
+
     if (error instanceof KudolyApiError) {
       // Handle specific error codes from the API
       if (error.code === 'PROJECT_NOT_FOUND') {
@@ -150,7 +153,7 @@ export async function submitDailyReport(
         return {
           type: 'error',
           code: 'UNAUTHORIZED',
-          message: 'Token inválido o expirado.'
+          message: 'Token invÃ¡lido o expirado.'
         };
       }
 
@@ -169,3 +172,4 @@ export async function submitDailyReport(
     };
   }
 }
+

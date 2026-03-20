@@ -1,5 +1,6 @@
-import { z } from 'zod/v3';
+﻿import { z } from 'zod/v3';
 import { KudolyApi, KudolyApiError } from '../services/kudolyApi.js';
+import { maybeThrowOAuthElicitationError } from './oauthElicitation.js';
 
 const stopTaskTimerBaseSchema = z.object({
   project_name: z.string().optional().describe('Nombre del proyecto para ayudar a resolver la tarea'),
@@ -9,7 +10,7 @@ const stopTaskTimerBaseSchema = z.object({
   notes: z.string().optional().describe('Notas finales, links o contexto adicional'),
   non_technical_summary: z.string().optional().describe('Resumen final no tecnico para stakeholders'),
   technical_summary: z.string().optional().describe('Resumen final tecnico con cambios, archivos o decisiones'),
-  status: z.enum(['todo', 'in_progress', 'done']).default('done').describe('Estado final de la tarea al detener el timer'),
+  status: z.enum(['backlog', 'in_progress', 'qa', 'complete', 'todo', 'done']).default('qa').describe('Estado final de la tarea al detener el timer'),
   source: z.enum(['manual', 'ai', 'clockify']).optional().describe('Origen del trabajo registrado'),
 });
 
@@ -59,6 +60,8 @@ export async function stopTaskTimer(
       message: result.message || 'Timer detenido correctamente.',
     };
   } catch (error) {
+    maybeThrowOAuthElicitationError(error);
+
     if (error instanceof KudolyApiError) {
       if (error.code === 'UNAUTHORIZED' || error.statusCode === 401) {
         return {
@@ -92,3 +95,4 @@ Usalo al cerrar una tarea o un bloque sustancial de trabajo. Idealmente envia:
 - estado final de la tarea
 
 Si hay varios timers activos, informa task_id o task_name para detener el correcto.`;
+

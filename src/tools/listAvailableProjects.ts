@@ -1,5 +1,6 @@
-import { z } from 'zod/v3';
+﻿import { z } from 'zod/v3';
 import { KudolyApi, KudolyApiError } from '../services/kudolyApi.js';
+import { maybeThrowOAuthElicitationError } from './oauthElicitation.js';
 
 export const listAvailableProjectsSchema = z.object({});
 
@@ -37,6 +38,8 @@ export async function listAvailableProjects(
       projects: result.projects,
     };
   } catch (error) {
+    maybeThrowOAuthElicitationError(error);
+
     if (error instanceof KudolyApiError) {
       if (error.code === 'UNAUTHORIZED' || error.statusCode === 401) {
         return {
@@ -64,3 +67,4 @@ export async function listAvailableProjects(
 export const LIST_AVAILABLE_PROJECTS_DESCRIPTION = `Devuelve los proyectos disponibles en Kudoly para la empresa del token actual.
 
 Usalo antes de iniciar o registrar tiempo cuando el proyecto no este claro o cuando quieras validar el nombre exacto a reutilizar.`;
+
